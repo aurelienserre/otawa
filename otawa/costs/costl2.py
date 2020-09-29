@@ -1,3 +1,5 @@
+import numpy as np
+from scipy.stats import multivariate_normal
 from otawa.base import BaseCost
 
 # don't forget to use itertools quand ça sera pratique : dans la boucle de
@@ -24,6 +26,11 @@ class CostL2(BaseCost):
 
         return self
 
+    def prediction(self, start, end):
+        """Value of the prediction after seeing segment."""
+        return self.predictions.setdefault(
+            (start, end), self.signal[start:end].mean(axis=0))
+
     def score(self, start, middle, end):
         """TODO: Docstring for score.
 
@@ -34,15 +41,21 @@ class CostL2(BaseCost):
 
         """
         if not (start, middle, end) in self.scores:
-            if not (start, middle) in self.predictions:
-                prediction = self.signal[start:middle].mean(axis=0)
-                self.predictions[(start, middle)] = prediction
-            else:
-                prediction = self.predictions[(start, middle)]
-
+            prediction = self.prediction(start, middle)
             sq_diff = (prediction - self.signal[middle:end]) ** 2
             score = sq_diff.mean()
             self.scores[(start, middle, end)] = score
         else:
             score = self.scores[(start, middle, end)]
         return score
+
+    def likelihood(self, start, end):
+        error = self.signal[start:end] - self.prediction(start, end)
+
+        # estimating sigma
+        sigma_hat = np.cov(error, rowvar=False)
+        L = np.sum(multivariate_normal.logpdf(
+            self.signal[start:end], self.prediction(start, end), sigma_hat,
+            allow_singular=True))
+
+        return L

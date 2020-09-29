@@ -1,5 +1,5 @@
 import abc
-from itertools import dropwhile
+from itertools import dropwhile, tee
 
 
 class BaseCost(abc.ABC):
@@ -112,3 +112,14 @@ class Otawa(object):
         score_no_pen = score + m * penalty
 
         return segmentation, score, score_no_pen
+
+    def likelihood(self, segmentation):
+        a, b = tee(segmentation)
+        next(b)
+        pairs = zip(a, b)
+
+        L = 0
+        for i, j in pairs:
+            L += self.cost.likelihood(i, j)
+
+        return L
