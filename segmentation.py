@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 
 
 def min_max_pen(algo):
@@ -84,3 +85,17 @@ def compute_criteria(algo, segmentations):
     for m, infos in segmentations.items():
         likelihood = algo.likelihood([0] + infos["cp_list"] + [algo.length])
         infos["likelihood"] = likelihood
+        nb_params = algo.nb_params([0] + infos["cp_list"] + [algo.length])
+        infos["nb_params"] = nb_params
+        log_T = np.log(algo.length)
+        infos["BIC"] = -2 * likelihood + nb_params * log_T
+
+
+def best_seg(segs, criterion):
+    best = float("inf")
+    for m, infos in segs.items():
+        if infos[criterion] < best:
+            best = infos[criterion]
+            best_m = m
+
+    return {best_m: segs[best_m]}

@@ -24,6 +24,9 @@ class CostL2(BaseCost):
         else:
             self.signal = signal
 
+        # nb elements per time step (to compute nb parameters)
+        self.nb_elements = sum(signal.shape[1:])
+
         return self
 
     def prediction(self, start, end):
@@ -59,3 +62,7 @@ class CostL2(BaseCost):
             allow_singular=True))
 
         return L
+
+    def nb_params(self, start, end):
+        # mean and std for each elements per time step
+        return 2 * self.nb_elements

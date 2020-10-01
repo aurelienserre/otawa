@@ -123,3 +123,14 @@ class Otawa(object):
             L += self.cost.likelihood(i, j)
 
         return L
+
+    def nb_params(self, segmentation):
+        a, b = tee(segmentation)
+        next(b)
+        pairs = zip(a, b)
+
+        p = 0
+        for i, j in pairs:
+            p += self.cost.nb_params(i, j)
+
+        return p
