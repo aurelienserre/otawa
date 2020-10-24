@@ -47,6 +47,8 @@ def explore_penalties(algo):
 
         cp_list, score, score_no_pen = algo.segmentation(penalty=b)
         m = len(cp_list) + 1
+        # cast to float for readability when values stored in yaml
+        score, score_no_pen = float(score), float(score_no_pen)
         results[b] = (m, score_no_pen)
         segmentations.setdefault(m, {'cp_list': cp_list, 'penalty': b, 'score_no_pen': score_no_pen, 'score': score})
 
@@ -65,15 +67,15 @@ def explore_penalties(algo):
         m1, Q1 = results[b1]
         m0, Q0 = results[b0]
 
+        b_int = (Q1 - Q0) / (m1 - m0)
         if m0 > m1 + 1:
-            b_int = (Q1 - Q0) / (m1 - m0)
             m_int, Q_int = test_pen(b_int)
             if m_int != m1 and m_int != m0:
                 b_intervals.update([(b0, b_int), (b_int, b1)])
             else:
                 segmentations[m1]['beta_min'] = b_int
         else:
-            segmentations[m1]['beta_min'] = (Q1 - Q0) / (m1 - m0)
+            segmentations[m1]['beta_min'] = b_int
 
     # order the different possible segmentations
     segmentations = OrderedDict(sorted(segmentations.items()))
@@ -84,11 +86,11 @@ def explore_penalties(algo):
 def compute_criteria(algo, segmentations):
     for m, infos in segmentations.items():
         likelihood = algo.likelihood([0] + infos["cp_list"] + [algo.length])
-        infos["likelihood"] = likelihood
+        infos["likelihood"] = float(likelihood)
         nb_params = algo.nb_params([0] + infos["cp_list"] + [algo.length])
         infos["nb_params"] = nb_params
         log_T = np.log(algo.length)
-        infos["BIC"] = -2 * likelihood + nb_params * log_T
+        infos["BIC"] = float(-2 * likelihood + nb_params * log_T)
 
 
 def best_seg(segs, criterion):

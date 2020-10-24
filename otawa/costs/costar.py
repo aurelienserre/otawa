@@ -26,7 +26,6 @@ class CostAR(BaseCost):
             # flatten to one dim per time step (necessary for linear model)
             signal = signal.reshape(len(signal), -1)
 
-
         # lagged values
         nshape = (signal.shape[0] - self.order, self.order, *signal.shape[1:])
         nstrides = (signal.strides[0], signal.strides[0], *signal.strides[1:])
@@ -85,4 +84,3 @@ class CostAR(BaseCost):
             self.get_model(start, end).sparse_coef_.getnnz()
             + self.get_model(start, end).intercept_.size
         )
-
