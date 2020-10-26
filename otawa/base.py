@@ -26,7 +26,7 @@ def log_likelihood_gaussian(diff):
     # slower implementation
     # L_old = np.sum(multivariate_normal.logpdf(diff, cov=variance))
     ndims = diff.shape[1]
-    L = np.mean(
+    L = np.sum(
         - ndims * np.log(2 * np.pi) / 2
         - np.log(np.linalg.det(variance)) / 2
         - np.expand_dims(diff, axis=1) @ np.linalg.inv(variance) @ np.expand_dims(diff, axis=2) / 2
