@@ -1,5 +1,7 @@
 import abc
 from itertools import dropwhile, tee
+import numpy as np
+from scipy.stats import multivariate_normal
 
 
 class BaseCost(abc.ABC):
@@ -12,6 +14,25 @@ class BaseCost(abc.ABC):
     @abc.abstractmethod
     def score(self, start, middle, end):
         pass
+
+
+def log_likelihood_gaussian(diff):
+    """Compute log likelihood with gaussian model, from diff.
+
+    diff = y_hat - y_true
+    Warning: assumes diagonal covariance matrix.
+    """
+    variance = np.diag(np.var(diff, axis=0, ddof=1))
+    # slower implementation
+    # L_old = np.sum(multivariate_normal.logpdf(diff, cov=variance))
+    ndims = diff.shape[1]
+    L = np.mean(
+        - ndims * np.log(2 * np.pi) / 2
+        - np.log(np.linalg.det(variance)) / 2
+        - np.expand_dims(diff, axis=1) @ np.linalg.inv(variance) @ np.expand_dims(diff, axis=2) / 2
+    )
+
+    return L
 
 
 class Otawa(object):

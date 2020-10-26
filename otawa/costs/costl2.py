@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import multivariate_normal
-from otawa.base import BaseCost
+from otawa.base import BaseCost, log_likelihood_gaussian
 
 # don't forget to use itertools quand ça sera pratique : dans la boucle de
 # calcul des scores
@@ -24,6 +24,8 @@ class CostL2(BaseCost):
         else:
             self.signal = signal
 
+        assert self.signal.ndim == 2, "signal should have two dimensions: 1st=time, 2nd=variables"
+
         # nb elements per time step (to compute nb parameters)
         self.nb_elements = sum(signal.shape[1:])
 
@@ -45,8 +47,8 @@ class CostL2(BaseCost):
         """
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
-            sq_diff = (prediction - self.signal[middle:end]) ** 2
-            score = sq_diff.mean()
+            diff = prediction - self.signal[middle:end]
+            score = log_likelihood_gaussian(diff)
             self.scores[(start, middle, end)] = score
         else:
             score = self.scores[(start, middle, end)]
