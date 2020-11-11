@@ -61,8 +61,8 @@ class CostAR(BaseCost):
         if not (start, middle, end) in self.scores:
             model = self.get_model(start, middle)
             pred = model.predict(self.lagged[middle:end])
-            sq_diff = (pred - self.signal[middle:end]) ** 2
-            score = sq_diff.sum()
+            diff = pred - self.signal[middle:end]
+            score = log_likelihood_gaussian(diff) - self.likelihood(middle, end)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score
@@ -71,7 +71,8 @@ class CostAR(BaseCost):
         return score
 
     def likelihood(self, start, end):
-        pred = self.get_model(start, end).predict(self.lagged[start + self.order:end])
+        model = self.get_model(start, end)
+        pred = model.predict(self.lagged[start + self.order:end])
         error = pred - self.signal[start + self.order:end]
 
         L = log_likelihood_gaussian(error)
