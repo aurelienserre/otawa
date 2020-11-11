@@ -7,8 +7,9 @@ from otawa.base import BaseCost, log_likelihood_gaussian
 
 
 class CostL2(BaseCost):
-    def __init__(self, average=False):
-        self.average = average
+    def __init__(self, average=False, regularize=True):
+        self.average = average          # average the score over the segmants?
+        self.regularize = regularize    # score regularized (by likelihood of the correct model)?
         self.predictions = {}
         self.scores = {}
 
@@ -49,7 +50,9 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff) - self.likelihood(middle, end)
+            score = log_likelihood_gaussian(diff)
+            if self.regularize:
+                score -= self.likelihood(middle, end)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score

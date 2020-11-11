@@ -6,10 +6,11 @@ from otawa.base import BaseCost, log_likelihood_gaussian
 
 
 class CostAR(BaseCost):
-    def __init__(self, order=3, alpha=1e-2, average=False):
+    def __init__(self, order=3, alpha=1e-2, average=False, regularize=True):
         self.order = order
         self.alpha = alpha
-        self.average = average
+        self.average = average          # average the score over the segmants?
+        self.regularize = regularize    # score regularized (by likelihood of the correct model)?
         self.models = {}
         self.scores = {}
 
@@ -62,7 +63,9 @@ class CostAR(BaseCost):
             model = self.get_model(start, middle)
             pred = model.predict(self.lagged[middle:end])
             diff = pred - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff) - self.likelihood(middle, end)
+            score = log_likelihood_gaussian(diff)
+            if self.regularize:
+                score -= self.likelihood(middle, end)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score
