@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import Lasso
 from scipy.stats import multivariate_normal
 from numpy.lib.stride_tricks import as_strided
-from otawa.base import BaseCost
+from otawa.base import BaseCost, log_likelihood_gaussian
 
 
 class CostAR(BaseCost):
@@ -74,11 +74,7 @@ class CostAR(BaseCost):
         pred = self.get_model(start, end).predict(self.lagged[start + self.order:end])
         error = pred - self.signal[start + self.order:end]
 
-        # estimating sigma
-        sigma_hat = np.cov(error, rowvar=False)
-        L = np.sum(multivariate_normal.logpdf(
-            error, np.zeros((error.shape[-1])), sigma_hat,
-            allow_singular=True))
+        L = log_likelihood_gaussian(error)
 
         return L
 
