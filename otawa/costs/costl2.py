@@ -48,7 +48,7 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff)
+            score = log_likelihood_gaussian(diff) - self.likelihood(middle, end)
             self.scores[(start, middle, end)] = score
         else:
             score = self.scores[(start, middle, end)]
@@ -57,11 +57,7 @@ class CostL2(BaseCost):
     def likelihood(self, start, end):
         error = self.signal[start:end] - self.prediction(start, end)
 
-        # estimating sigma
-        sigma_hat = np.cov(error, rowvar=False)
-        L = np.sum(multivariate_normal.logpdf(
-            self.signal[start:end], self.prediction(start, end), sigma_hat,
-            allow_singular=True))
+        L = log_likelihood_gaussian(error)
 
         return L
 
