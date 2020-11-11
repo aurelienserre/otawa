@@ -6,9 +6,10 @@ from otawa.base import BaseCost
 
 
 class CostAR(BaseCost):
-    def __init__(self, order=3, alpha=1e-2):
+    def __init__(self, order=3, alpha=1e-2, average=False):
         self.order = order
         self.alpha = alpha
+        self.average = average
         self.models = {}
         self.scores = {}
 
@@ -61,7 +62,9 @@ class CostAR(BaseCost):
             model = self.get_model(start, middle)
             pred = model.predict(self.lagged[middle:end])
             sq_diff = (pred - self.signal[middle:end]) ** 2
-            score = sq_diff.mean()
+            score = sq_diff.sum()
+            if self.average:
+                score /= (end - middle)
             self.scores[(start, middle, end)] = score
         else:
             score = self.scores[(start, middle, end)]

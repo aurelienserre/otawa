@@ -7,7 +7,8 @@ from otawa.base import BaseCost, log_likelihood_gaussian
 
 
 class CostL2(BaseCost):
-    def __init__(self):
+    def __init__(self, average=False):
+        self.average = average
         self.predictions = {}
         self.scores = {}
 
@@ -49,6 +50,8 @@ class CostL2(BaseCost):
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
             score = log_likelihood_gaussian(diff) - self.likelihood(middle, end)
+            if self.average:
+                score /= (end - middle)
             self.scores[(start, middle, end)] = score
         else:
             score = self.scores[(start, middle, end)]
