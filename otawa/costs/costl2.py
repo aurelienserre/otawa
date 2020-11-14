@@ -13,7 +13,6 @@ class CostL2(BaseCost):
     def __init__(self, average=False, regularize=True):
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
-        self.const_cov = const_cov      # whether the covariance is assumed constant along the whole time-series
         self.predictions = {}
         self.scores = {}
 
