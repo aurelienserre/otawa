@@ -27,7 +27,7 @@ def log_likelihood_gaussian(diff, cov=None):
     # cf. 1st comment on https://stats.stackexchange.com/a/30466/237874
     # this brings singularity problems, and det(Sigma) < 0 which doesn't work in
     # the log_likelihood term -1/2 log(det(Sigma))
-    if not cov:
+    if cov is not None:
         # if no covariance provided, estimates it on `diff`
         covariance = np.diag(np.var(diff, axis=0, ddof=1))
     # slower implementation
