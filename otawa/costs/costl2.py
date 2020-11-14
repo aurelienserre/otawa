@@ -1,3 +1,4 @@
+import numpy as np
 from ..base import BaseCost, log_likelihood_gaussian
 # replace by the following line once otawa transformed into package
 # from otawa.base import BaseCost, log_likelihood_gaussian
@@ -9,9 +10,10 @@ from ..base import BaseCost, log_likelihood_gaussian
 
 
 class CostL2(BaseCost):
-    def __init__(self, average=False, regularize=True):
+    def __init__(self, average=False, regularize=True, const_cov=False):
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
+        self.const_cov = const_cov      # whether the covariance is assumed constant along the whole time-series
         self.predictions = {}
         self.scores = {}
 
@@ -33,6 +35,13 @@ class CostL2(BaseCost):
         # nb elements per time step (to compute nb parameters)
         self.nb_elements = sum(signal.shape[1:])
 
+        if self.const_cov:
+            # compute covariance matrix of the time-series (assumed diagonal)
+            self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+        else:
+            # set to None, so that it will be computed on a per segment basis
+            self.cov = None
+
         return self
 
     def prediction(self, start, end):
@@ -52,7 +61,7 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff)
+            score = log_likelihood_gaussian(diff, cov=self.cov)
             if self.regularize:
                 score -= self.likelihood(middle, end)
             if self.average:
@@ -65,7 +74,7 @@ class CostL2(BaseCost):
     def likelihood(self, start, end):
         error = self.signal[start:end] - self.prediction(start, end)
 
-        L = log_likelihood_gaussian(error)
+        L = log_likelihood_gaussian(error, cov=self.cov)
 
         return L
 

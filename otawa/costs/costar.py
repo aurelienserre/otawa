@@ -12,11 +12,12 @@ from ..base import BaseCost, log_likelihood_gaussian
 
 
 class CostAR(BaseCost):
-    def __init__(self, order=3, alpha=1e-2, average=False, regularize=True):
+    def __init__(self, order=3, alpha=1e-2, average=False, regularize=True, const_cov=False):
         self.order = order
         self.alpha = alpha
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
+        self.const_cov = const_cov      # whether the covariance is assumed constant along the whole time-series
         self.models = {}
         self.scores = {}
 
@@ -33,6 +34,13 @@ class CostAR(BaseCost):
         else:
             # flatten to one dim per time step (necessary for linear model)
             signal = signal.reshape(len(signal), -1)
+
+        if self.const_cov:
+            # compute covariance matrix of the time-series (assumed diagonal)
+            self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+        else:
+            # set to None, so that it will be computed on a per segment basis
+            self.cov = None
 
         # lagged values
         nshape = (signal.shape[0] - self.order, self.order, *signal.shape[1:])
@@ -69,7 +77,7 @@ class CostAR(BaseCost):
             model = self.get_model(start, middle)
             pred = model.predict(self.lagged[middle:end])
             diff = pred - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff)
+            score = log_likelihood_gaussian(diff, cov=self.cov)
             if self.regularize:
                 score -= self.likelihood(middle, end)
             if self.average:
@@ -84,7 +92,7 @@ class CostAR(BaseCost):
         pred = model.predict(self.lagged[start + self.order:end])
         error = pred - self.signal[start + self.order:end]
 
-        L = log_likelihood_gaussian(error)
+        L = log_likelihood_gaussian(error, cov=self.cov)
 
         return L
 
