@@ -71,7 +71,7 @@ class CostL2(BaseCost):
     def likelihood(self, start, end):
         error = self.signal[start:end] - self.prediction(start, end)
 
-        L = log_likelihood_gaussian(error, cov=self.cov)
+        L = log_likelihood_gaussian(error, covariance=self.cov)
 
         return L
 
