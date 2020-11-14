@@ -59,7 +59,7 @@ class CostL2(BaseCost):
             score = np.sum(diff ** 2)
             if self.regularize:
                 prediction = self.prediction(middle, end)
-                diff = prediciton - self.signal[middle:end]
+                diff = prediction - self.signal[middle:end]
                 score -= np.sum(diff ** 2)
             if self.average:
                 score /= (end - middle)
