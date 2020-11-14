@@ -10,7 +10,7 @@ from ..base import BaseCost, log_likelihood_gaussian
 
 
 class CostL2(BaseCost):
-    def __init__(self, average=False, regularize=True, const_cov=False):
+    def __init__(self, average=False, regularize=True):
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
         self.const_cov = const_cov      # whether the covariance is assumed constant along the whole time-series
@@ -35,12 +35,8 @@ class CostL2(BaseCost):
         # nb elements per time step (to compute nb parameters)
         self.nb_elements = sum(signal.shape[1:])
 
-        if self.const_cov:
-            # compute covariance matrix of the time-series (assumed diagonal)
-            self.cov = np.diag(np.var(signal, axis=0, ddof=1))
-        else:
-            # set to None, so that it will be computed on a per segment basis
-            self.cov = None
+        # compute covariance matrix of the time-series (assumed diagonal)
+        self.cov = np.diag(np.var(signal, axis=0, ddof=1))
 
         return self
 
@@ -61,9 +57,11 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff, cov=self.cov)
+            score = np.sum(diff ** 2)
             if self.regularize:
-                score -= self.likelihood(middle, end)
+                prediction = self.prediction(middle, end)
+                diff = prediciton - self.signal[middle:end]
+                score -= np.sum(diff ** 2)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score
