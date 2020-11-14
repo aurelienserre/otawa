@@ -27,14 +27,14 @@ def log_likelihood_gaussian(diff):
     # cf. 1st comment on https://stats.stackexchange.com/a/30466/237874
     # this brings singularity problems, and det(Sigma) < 0 which doesn't work in
     # the log_likelihood term -1/2 log(det(Sigma))
-    variance = np.diag(np.var(diff, axis=0, ddof=1))
+    covariance = np.diag(np.var(diff, axis=0, ddof=1))
     # slower implementation
-    # L_old = np.sum(multivariate_normal.logpdf(diff, cov=variance))
+    # L_old = np.sum(multivariate_normal.logpdf(diff, cov=covariance))
     ndims = diff.shape[1]
     L = np.sum(
         - ndims * np.log(2 * np.pi) / 2
-        - np.log(np.linalg.det(variance)) / 2
-        - np.einsum("ni,ij,nj", diff, np.linalg.inv(variance), diff) / 2
+        - np.log(np.linalg.det(covariance)) / 2
+        - np.einsum("ni,ij,nj", diff, np.linalg.inv(covariance), diff) / 2
     )
 
     return L
