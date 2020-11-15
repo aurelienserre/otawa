@@ -69,9 +69,12 @@ class CostAR(BaseCost):
             model = self.get_model(start, middle)
             pred = model.predict(self.lagged[middle:end])
             diff = pred - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff)
+            score = np.sum(diff ** 2)
             if self.regularize:
-                score -= self.likelihood(middle, end)
+                model = self.get_model(middle, end)
+                pred = model.predict(self.lagged[middle:end])
+                diff = pred = self.signal[middle:end]
+                score -= np.sum(diff ** 2)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score
