@@ -61,9 +61,9 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = log_likelihood_gaussian(diff, covariance=self.cov)
+            score = - log_likelihood_gaussian(diff, covariance=self.cov)
             if self.regularize:
-                score -= self.likelihood(middle, end)
+                score -= - self.likelihood(middle, end)
             if self.average:
                 score /= (end - middle)
             self.scores[(start, middle, end)] = score
