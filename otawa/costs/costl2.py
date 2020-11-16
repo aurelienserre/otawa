@@ -33,7 +33,7 @@ class CostL2(BaseCost):
         assert self.signal.ndim == 2, "signal should have two dimensions: 1st=time, 2nd=variables"
 
         # nb elements per time step (to compute nb parameters)
-        self.nb_elements = sum(signal.shape[1:])
+        self.nb_elements = signal.shape[1]
 
         if self.const_cov:
             # compute covariance matrix of the time-series (assumed diagonal)
@@ -79,5 +79,9 @@ class CostL2(BaseCost):
         return L
 
     def nb_params(self, start, end):
-        # mean and std for each elements per time step
-        return 2 * self.nb_elements
+        if self.const_cov:
+            # only mean (i.e. one param per variable)
+            return self.nb_elements
+        else:
+            # mean and diag cov (i.e. 2 params per variable)
+            return 2 * self.nb_elements
