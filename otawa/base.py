@@ -36,7 +36,7 @@ def log_likelihood_gaussian(diff, covariance=None):
     L = np.sum(
         - ndims * np.log(2 * np.pi) / 2
         - np.log(np.linalg.det(covariance)) / 2
-        - np.einsum("ni,ij,nj", diff, np.linalg.inv(covariance), diff) / 2
+        - np.einsum("ni,ij,nj->n", diff, np.linalg.inv(covariance), diff) / 2
     )
 
     return L
