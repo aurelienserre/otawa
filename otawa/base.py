@@ -16,7 +16,7 @@ class BaseCost(abc.ABC):
         pass
 
 
-def log_likelihood_gaussian(diff, covariance=None):
+def log_likelihood_gaussian(diff, covariance=None, diag_cov=True):
     """Compute log likelihood with gaussian model, from diff.
 
     diff = y_hat - y_true
@@ -29,7 +29,10 @@ def log_likelihood_gaussian(diff, covariance=None):
     # the log_likelihood term -1/2 log(det(Sigma))
     if covariance is None:
         # if no covariance provided, estimates it on `diff`
-        covariance = np.diag(np.var(diff, axis=0, ddof=1))
+        if diag_cov:
+            covariance = np.diag(np.var(diff, axis=0, ddof=1))
+        else:
+            covariance = np.cov(diff, rowvar=False)
     # slower implementation
     # L_old = np.sum(multivariate_normal.logpdf(diff, cov=covariance))
     ndims = diff.shape[1]

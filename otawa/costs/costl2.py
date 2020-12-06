@@ -10,10 +10,11 @@ from ..base import BaseCost, log_likelihood_gaussian
 
 
 class CostL2(BaseCost):
-    def __init__(self, average=False, regularize=True, const_cov=False):
+    def __init__(self, average=False, regularize=True, const_cov=False, diag_cov=True):
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
         self.const_cov = const_cov      # whether the covariance is assumed constant along the whole time-series
+        self.diag_cov = diag_cov        # whether to use a full covariance mat, or a diag. one
         self.predictions = {}
         self.scores = {}
 
@@ -37,7 +38,10 @@ class CostL2(BaseCost):
 
         if self.const_cov:
             # compute covariance matrix of the time-series (assumed diagonal)
-            self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+            if self.diag_cov:
+                self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+            else:
+                self.cov = np.cov(signal, rowvar=False)
         else:
             # set to None, so that it will be computed on a per segment basis
             self.cov = None
@@ -61,7 +65,7 @@ class CostL2(BaseCost):
         if not (start, middle, end) in self.scores:
             prediction = self.prediction(start, middle)
             diff = prediction - self.signal[middle:end]
-            score = - log_likelihood_gaussian(diff, covariance=self.cov)
+            score = - log_likelihood_gaussian(diff, covariance=self.cov, diag_cov=self.diag_cov)
             if self.regularize:
                 score -= - self.likelihood(middle, end)
             if self.average:
@@ -74,7 +78,7 @@ class CostL2(BaseCost):
     def likelihood(self, start, end):
         error = self.signal[start:end] - self.prediction(start, end)
 
-        L = log_likelihood_gaussian(error, covariance=self.cov)
+        L = log_likelihood_gaussian(error, covariance=self.cov, diag_cov=self.diag_cov)
 
         return L
 
