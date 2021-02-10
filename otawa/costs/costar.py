@@ -12,11 +12,12 @@ from ..base import BaseCost, log_likelihood_gaussian
 
 
 class CostAR(BaseCost):
-    def __init__(self, order=3, alpha=1e-2, average=False, regularize=True):
+    def __init__(self, order=3, alpha=1e-2, average=False, regularize=True, diag_cov=True):
         self.order = order
         self.alpha = alpha
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
+        self.diag_cov = diag_cov        # whether to use a full covariance mat, or a diag. one
         self.models = {}
         self.scores = {}
 
@@ -87,7 +88,7 @@ class CostAR(BaseCost):
         pred = model.predict(self.lagged[start + self.order:end])
         error = pred - self.signal[start + self.order:end]
 
-        L = log_likelihood_gaussian(error)
+        L = log_likelihood_gaussian(error, diag_cov=self.diag_cov)
 
         return L
 

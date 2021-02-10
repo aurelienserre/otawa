@@ -9,10 +9,11 @@ from ..base import BaseCost, log_likelihood_gaussian
 # replace `otawa` by the name chosen for the package (otawacpd for example)
 
 
-class CostL2(BaseCost):
-    def __init__(self, average=False, regularize=True):
+class CostL2SOS(BaseCost):
+    def __init__(self, average=False, regularize=True, diag_cov=True):
         self.average = average          # average the score over the segmants?
         self.regularize = regularize    # score regularized (by likelihood of the correct model)?
+        self.diag_cov = diag_cov        # whether to use a full covariance mat, or a diag. one
         self.predictions = {}
         self.scores = {}
 
@@ -35,7 +36,10 @@ class CostL2(BaseCost):
         self.nb_elements = sum(signal.shape[1:])
 
         # compute covariance matrix of the time-series (assumed diagonal)
-        self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+        if self.diag_cov:
+            self.cov = np.diag(np.var(signal, axis=0, ddof=1))
+        else:
+            self.cov = np.cov(signal, rowvar=False)
 
         return self
 
