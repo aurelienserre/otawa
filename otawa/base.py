@@ -1,7 +1,6 @@
 import abc
 from itertools import dropwhile, tee
 import numpy as np
-from scipy.stats import multivariate_normal
 
 
 class BaseCost(abc.ABC):
@@ -9,32 +8,39 @@ class BaseCost(abc.ABC):
 
     @abc.abstractmethod
     def fit(self, signal):
+        """Set the signal (time series) on which costs will be computed."""
         pass
 
     @abc.abstractmethod
     def score(self, start, middle, end):
+        """Compute the score of a given pair of consecutive segments."""
         pass
 
 
 def log_likelihood_gaussian(diff, covariance=None, diag_cov=True):
     """Compute log likelihood with gaussian model, from diff.
 
-    diff = y_hat - y_true
-    Warning: assumes diagonal covariance matrix.
+    diff = y_hat - y_true, assumed to be centered.
+
+    Parameters:
+        covariance: Covariance matrix to use. If not provided, defaults to
+            computing the sample covariance matrix on `diff`.
+        diag_cov: if `True`, assume the covariance matrix to be diagonal; full
+            otherwise. Used only if `covariance` not provided.
+            Note: A full sample covariance matrix can be problematic with high
+                dimensions and short segments, because when
+                nb_samples < nb_variables, it will be singular. This is
+                especially problematic with autoregressive models, where
+                nb_variables = dimension * order.
+                This could be solved by using shrinkage.
     """
-    # assume diagonal cov mat, because otherwise estimated full cov mat
-    # might be non positive definite when nb_samples < nb_variables
-    # cf. 1st comment on https://stats.stackexchange.com/a/30466/237874
-    # this brings singularity problems, and det(Sigma) < 0 which doesn't work in
-    # the log_likelihood term -1/2 log(det(Sigma))
     if covariance is None:
         # if no covariance provided, estimates it on `diff`
         if diag_cov:
             covariance = np.diag(np.var(diff, axis=0, ddof=1))
         else:
             covariance = np.cov(diff, rowvar=False)
-    # slower implementation
-    # L_old = np.sum(multivariate_normal.logpdf(diff, cov=covariance))
+
     ndims = diff.shape[1]
     L = np.sum(
         - ndims * np.log(2 * np.pi) / 2
@@ -46,22 +52,36 @@ def log_likelihood_gaussian(diff, covariance=None, diag_cov=True):
 
 
 class Otawa(object):
-
-    """Docstring for Otawa. """
+    """Class implementing the Otawa algorithm."""
 
     def __init__(self, cost, jump=1, spacing=5):
-        """TODO: to be defined.
-
-        :Docstring for Otawa.: TODO
-
+        """
+        Parameters:
+            cost: cost object inheriting from `BaseCost`, and implementing
+                the `fit` and `score` methods.
+            jump: used to adjust the resolution. One every `jump` time step
+                is considered as a candidate change point.
+            spacing: minimum spacing between consecutive change points for a
+                segmentation to to feasible
         """
         self.cost = cost
         self.signal = None
-        self.date = None
         self.jump = jump
         self.spacing = spacing
 
     def fit(self, signal):
+        """Pass the time series to the Otawa object.
+
+        It initializes some parameters, and also computes the scores that will
+        be needed for segmentation later. So this methods accounts for most of
+        the run time of OTAWA.
+
+        Parameter:
+            signal: time series on which change point detection will be
+                performed. Usually assumed to be a numpy array or compatible,
+                and that first dimension is time. See a specific cost's
+                implementation of its fit method for more details.
+        """
         self.cost.fit(signal)
         self.signal = self.cost.signal
         self.length = len(self.signal)
@@ -74,13 +94,15 @@ class Otawa(object):
         indexes -= set(range(self.length - self.spacing, self.length - 1))
 
         """Warning, if spacing is smaller than jump (weird anyway, doesn't
-        make much sens), the last and second to last points might be closer
-        than `jump` appart (but more than spacing).
+        make much sens), the last two points might be closer than `jump` time
+        steps appart (but more than spacing).
         Spacing larger than jump makes more sens, and spacing multiple of
-        jump should be preferred (otherwise, weird behaviours may happen)."""
+        jump should be preferred (otherwise, unexpected behaviours may
+        happen)."""
 
         indexes = sorted(indexes)
 
+        # compute scores of all paris of consecutive segments
         self.edges = list()
         self.nodes = set()
         for i in indexes:
@@ -90,6 +112,7 @@ class Otawa(object):
                     self.edges.append(((i, j), (j, k), score))
                     self.nodes |= {(i, j), (j, k)}
 
+        # add unique source and targets nodes, and corresponding edges
         source_edges = list()
         target_edges = list()
         for i, j in self.nodes:
@@ -103,7 +126,7 @@ class Otawa(object):
 
     def segmentation(self, penalty=0.):
         """
-        Computes the optimal segmentation of the time-series with the penalty
+        Compute the optimal segmentation of the time series with the penalty
         value passed as argument by computing the longest path on the graph
         represented by the `edges` and `nodes` attributes.
 
@@ -115,7 +138,6 @@ class Otawa(object):
             score_no_pen : score corresponding to that optimal segmentation
                 without taking the penalty into account
         """
-
         # Bellman-Ford modified for DAGs
         dist = {node: -float('inf') for node in self.nodes}
         dist['source'] = 0
@@ -145,6 +167,7 @@ class Otawa(object):
         return segmentation, score, score_no_pen
 
     def likelihood(self, segmentation):
+        """Compute the likelihood of a given segmentation of the signal."""
         a, b = tee(segmentation)
         next(b)
         pairs = zip(a, b)
@@ -156,6 +179,8 @@ class Otawa(object):
         return L
 
     def nb_params(self, segmentation):
+        """Compute the number of parameters in the piecewise model
+        corresponding to a given segmentation."""
         a, b = tee(segmentation)
         next(b)
         pairs = zip(a, b)

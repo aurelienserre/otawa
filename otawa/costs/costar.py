@@ -22,13 +22,13 @@ class CostAR(BaseCost):
         self.scores = {}
 
     def fit(self, signal):
-        """TODO: Docstring for fit.
+        """Sets the signal (time series) on which cost will be computed.
 
-        :signal: TODO
-        :returns: TODO
-
+        Parameter:
+            signal: numpy array or compatible. First dimension must be time,
+                other dimensions will be flattened into one, to yield a
+                globally 2D signal array.
         """
-        # time is first dimention
         if signal.ndim == 1:
             signal = signal.reshape(-1, 1)
         else:

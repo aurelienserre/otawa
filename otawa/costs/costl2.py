@@ -19,25 +19,24 @@ class CostL2(BaseCost):
         self.scores = {}
 
     def fit(self, signal):
-        """TODO: Docstring for fit.
+        """Set the signal (time series) on which costs will be computed.
 
-        :signal: TODO
-        :returns: TODO
-
+        Parameter:
+            signal: numpy array or compatible. First dimension must be time,
+                other dimensions will be flattened into one, to yield a
+                globally 2D signal array.
         """
-        # time is first dimention
         if signal.ndim == 1:
             self.signal = signal.reshape(-1, 1)
         else:
-            self.signal = signal
-
-        assert self.signal.ndim == 2, "signal should have two dimensions: 1st=time, 2nd=variables"
+            # flatten to one dim per time step
+            self.signal = signal.reshape(len(signal), -1)
 
         # nb elements per time step (to compute nb parameters)
         self.nb_elements = signal.shape[1]
 
         if self.const_cov:
-            # compute covariance matrix of the time-series (assumed diagonal)
+            # compute covariance matrix of the time-series (diagonal of full)
             if self.diag_cov:
                 self.cov = np.diag(np.var(signal, axis=0, ddof=1))
             else:
